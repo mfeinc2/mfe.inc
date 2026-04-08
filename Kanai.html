@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>金井すけみつのホームページ</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #FFFFFF;
+            font-family: "MS PGothic", "Osaka", "ヒラギノ角ゴ Pro W3", sans-serif;
+            
+            /* 【修正ポイント】URLエンコード済みのSVG背景 */
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='100'%3E%3Ctext x='10' y='60' font-size='24' fill='rgba(144, 238, 144, 0.4)' font-family='Arial' font-weight='bold'%3EKanai Sukemitsu%3C/text%3E%3C/svg%3E");
+            background-repeat: repeat;
+            
+            /* PC表示を強制するため、bodyに最小幅を設定 */
+            min-width: 950px;
+        }
+
+        /* テーブルによるガチガチのレイアウト */
+        .layout-table {
+            border-collapse: collapse;
+            width: 950px;
+            height: 100vh;
+        }
+
+        /* サイドバー：色は当時のまま */
+        .sidebar {
+            width: 200px;
+            background-color: #E6E6FF;
+            vertical-align: top;
+            padding: 20px;
+            border-right: 2px solid #ccc;
+        }
+
+        .main-content {
+            vertical-align: top;
+            padding: 30px;
+            width: 750px;
+        }
+
+        /* ナビゲーションメニュー */
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        li {
+            margin-bottom: 25px;
+            font-size: 14px;
+        }
+
+        a {
+            text-decoration: none;
+            color: #0000FF;
+            font-weight: bold;
+        }
+
+        a:hover {
+            color: #FF0000;
+            text-decoration: underline;
+        }
+
+        /* おなじみのドットカラー */
+        .dot-top { color: #FFC0CB; }
+        .dot-movie { color: #90EE90; }
+        .dot-drama { color: #87CEEB; }
+        .dot-stage { color: #0000FF; }
+        .dot-photo { color: #0000FF; }
+        .dot-book { color: #800080; }
+        .dot-admin { color: #FF00FF; }
+
+        h1 {
+            font-size: 30px;
+            text-align: right;
+            margin-right: 50px;
+            margin-top: 0;
+            margin-bottom: 30px;
+            font-weight: normal;
+        }
+
+        .main-photo {
+            width: 350px;
+            border: 1px solid #000;
+            margin-bottom: 10px;
+        }
+
+        .warning-text {
+            color: #FF0000;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid #ccc;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <table border="0" cellpadding="0" cellspacing="0" class="layout-table">
+        <tr>
+            <td class="sidebar">
+                <ul>
+                    <li><span class="dot-top">●</span> <a href="#">トップ</a></li>
+                    <li><span class="dot-movie">●</span> <a href="#">映画出演</a></li>
+                    <li><span class="dot-drama">●</span> <a href="#">ドラマ出演</a></li>
+                    <li><span class="dot-stage">●</span> <a href="#">舞台出演</a></li>
+                    <li><span class="dot-photo">●</span> <a href="#">写真集</a></li>
+                    <li><span class="dot-book">●</span> <a href="#">出版物</a></li>
+                    <li><span class="dot-admin">●</span> <a href="#">管理者</a></li>
+                </ul>
+            </td>
+
+            <td class="main-content">
+                <h1>金井すけみつのホームページ</h1>
+
+                <table border="0" width="100%">
+                    <tr>
+                        <td width="380" valign="top">
+                            <img src="kanai_photo.jpg" alt="金井すけみつ" class="main-photo">
+                            <p style="font-size: 14px; line-height: 1.6;">
+                                金井すけみつ（かない すけみつ）<br>
+                                Kanai Sukemitsu<br>
+                                生年月日 1996年9月6日<br>
+                                血液型 O型<br>
+                                <a href="#">プロフィール</a>
+                            </p>
+                            <hr align="left" width="300">
+                            <p style="font-size: 11px;">
+                                If you have any enquiries regarding my works...<br>
+                                contact me at <a href="mailto:info@example.com">kskssk3@gmail.com</a>
+                            </p>
+                            <p style="font-size: 13px;">
+                                所属:<br>
+                                カナイ虚偽エンターテイメント株式会社<br>
+                                神奈川県横浜市鶴見区
+                            </p>
+                        </td>
+                        <td valign="top" style="padding-left: 20px; font-size: 13px;">
+                            <p>・近況</p>
+                            <p style="margin-left: 10px;">
+                                <a href="#">「みおと交際」</a><br>
+                                <strong>2025年</strong>
+                            </p>
+                            <p style="margin-left: 10px;">
+                                <a href="#">「ミハラ虚偽エンターテイメント株式会社公式チャンネル出演中」</a><br>
+                                <strong>2026年</strong>
+                            </p>
+                            
+                            <hr>
+                            
+                            <p> 当サイトの内容、テキスト、画像等の無断転載・無断使用を固く禁じます。<br>
+また、まとめサイト等への引用を厳禁致します。
+お問い合わせはメールでご連絡をお願い致します。</p>
+                            <p class="warning-text">
+                                ※金井すけみつのサイトを名乗る偽サイトの報告が寄せられておりますのでご注意ください。<br>
+※LINE上でY.Kanaiを名乗るアカウントがあるといった“なりすまし”の報告が寄せられておりますが、金井本人は一切行っておりませんので、ご注意ください。
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>
