@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>おみせやさんレジ</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bgBase: '#FFF8E8',
+                        btnReg: '#4CAF50',
+                        btnRegister: '#2196F3',
+                        btnCancel: '#F44336',
+                        btnTotal: '#FF9800',
+                        cardBg: '#FFFFFF',
+                        textMain: '#333333'
+                    },
+                    borderRadius: {
+                        'kids': '20px'
+                    },
+                    boxShadow: {
+                        'kids': '0 4px 0 rgba(0,0,0,0.1)',
+                        'kids-active': '0 0px 0 rgba(0,0,0,0.1)'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,700,1,0" />
+    
+    <!-- Libraries -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+
+    <style>
+        /* 全体設定 */
+        body {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            background-color: #FFF8E8;
+            color: #333333;
+            user-select: none;
+            -webkit-user-select: none;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* 画面切り替え */
+        .page {
+            display: none;
+            min-height: 100vh;
+            padding-bottom: 90px;
+            animation: fadeIn 0.3s ease-out;
+        }
+        .page.active {
+            display: block;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 子ども向けボタン */
+        .btn-kids {
+            border-radius: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.15);
+            transition: all 0.1s;
+            cursor: pointer;
+        }
+        .btn-kids:active {
+            transform: translateY(6px);
+            box-shadow: 0 0px 0 rgba(0,0,0,0.15);
+        }
+        .btn-kids:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.15);
+        }
+
+        /* カードデザイン */
+        .card-kids {
+            background: #FFFFFF;
+            border-radius: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 2px solid transparent;
+        }
+
+        /* スキャナー */
+        #reader { width: 100%; border-radius: 20px; overflow: hidden; background: #000; position: relative; }
+        #reader video { object-fit: cover; }
+        .scan-overlay {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 80%; height: 120px;
+            border: 4px solid #4CAF50; border-radius: 20px;
+            box-shadow: 0 0 0 2000px rgba(0,0,0,0.4); pointer-events: none; z-index: 10;
+        }
+        .scan-line {
+            width: 100%; height: 2px; background: red; position: absolute; top: 0; left: 0;
+            animation: scanLine 2s linear infinite; box-shadow: 0 0 8px red;
+        }
+        @keyframes scanLine { 0% { top: 0; } 50% { top: 100%; } 100% { top: 0; } }
+        .flash { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: white; z-index: 9999; opacity: 0; pointer-events: none; }
+
+        /* レシートアニメーション */
+        .receipt-container { perspective: 1000px; padding: 20px; }
+        .receipt-paper {
+            background: white; border-radius: 0 0 8px 8px; box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            width: 100%; max-width: 350px; margin: 0 auto; overflow: hidden;
+            height: 0;
+            position: relative;
+        }
+        .receipt-top-edge {
+            height: 12px; background: linear-gradient(135deg, white 25%, transparent 25%) -6px 0, linear-gradient(225deg, white 25%, transparent 25%) -6px 0;
+            background-size: 12px 12px; background-color: #eee; width: 100%; max-width: 350px; margin: 0 auto; margin-bottom: -1px;
+        }
+        .receipt-content { padding: 20px; font-family: 'Courier New', Courier, monospace; color: #333; }
+
+        /* 入力フォーム */
+        .kids-input {
+            width: 100%; border-radius: 16px; background: #fff; border: 2px solid #ddd;
+            padding: 16px; font-size: 20px; outline: none; transition: border-color 0.2s;
+        }
+        .kids-input:focus { border-color: #4CAF50; }
+
+        /* ナビゲーションバー */
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0; background: white; box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            display: flex; justify-content: space-around; padding: 12px 0 calc(12px + env(safe-area-inset-bottom)); z-index: 50;
+            border-radius: 24px 24px 0 0;
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: #999; transition: color 0.2s; cursor: pointer; }
+        .nav-item.active { color: #4CAF50; }
+        .nav-item .material-symbols-rounded { font-size: 32px; }
+        .nav-item span { font-size: 12px; font-weight: bold; margin-top: 4px; }
+
+        /* トースト通知 */
+        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: #333; color: white; padding: 12px 24px; border-radius: 30px; font-weight: bold; z-index: 10000; opacity: 0; transition: all 0.3s; }
+        #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    </style>
+</head>
+<body>
+
+    <!-- 画面フラッシュ用 -->
+    <div id="flashOverlay" class="flash"></div>
+    <div id="toast"></div>
+
+    <!-- =============== ホーム画面 (メニュー) =============== -->
+    <div id="page-home" class="page active px-4 pt-6">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold flex items-center gap-2 text-bgBase-900">
+                <span class="material-symbols-rounded text-btnReg text-3xl">storefront</span>
+                おみせやさん
+            </h1>
+            <button onclick="playSound('pon'); toggleSound()" class="bg-white p-2 rounded-full shadow" id="btn-sound-toggle">
+                <span class="material-symbols-rounded" id="icon-sound">volume_up</span>
+            </button>
+        </div>
+
+        <div class="flex gap-3 mb-6">
+            <button onclick="startScanner('cart')" class="btn-kids bg-btnReg text-white flex-1 flex-col py-3 px-2 relative overflow-hidden group">
+                <div class="absolute inset-0 bg-white opacity-0 group-active:opacity-20 transition-opacity"></div>
+                <span class="material-symbols-rounded text-4xl mb-1">barcode_scanner</span>
+                <span class="text-base font-bold leading-tight">レジをうつ</span>
+            </button>
+            
+            <button onclick="startScanner('register')" class="btn-kids bg-btnRegister text-white flex-1 flex-col py-3 px-2 relative overflow-hidden group">
+                <div class="absolute inset-0 bg-white opacity-0 group-active:opacity-20 transition-opacity"></div>
+                <span class="material-symbols-rounded text-4xl mb-1">add_box</span>
+                <span class="text-base font-bold leading-tight">あたらしく<br>とうろく</span>
+            </button>
+        </div>
+
+        <div class="mb-4">
+            <h2 class="text-lg font-bold mb-3 flex items-center gap-1 text-gray-700">
+                <span class="material-symbols-rounded">shopping_cart</span> かごのなか
+            </h2>
+            <div id="cart-list" class="space-y-3 min-h-[150px]">
+                <div class="text-center text-gray-400 py-8 font-bold">まだ何もないよ！<br>「レジをうつ」をおしてね</div>
+            </div>
+        </div>
+
+        <!-- お会計バー -->
+        <div class="fixed bottom-[80px] left-0 right-0 bg-white shadow-[0_-4px_10px_rgba(0,0,0,0.05)] p-4 rounded-t-3xl z-40">
+            <div class="flex justify-between items-end mb-3 px-2">
+                <span class="text-gray-500 font-bold">ごうけい</span>
+                <span class="text-3xl font-bold text-btnTotal" id="cart-total">0円</span>
+            </div>
+            <button onclick="checkout()" id="btn-checkout" class="btn-kids bg-btnTotal text-white w-full text-2xl py-3" disabled>
+                <span class="material-symbols-rounded">point_of_sale</span>
+                おかいけい
+            </button>
+        </div>
+    </div>
+
+    <!-- =============== スキャン画面 =============== -->
+    <div id="page-scanner" class="page bg-black px-0 pt-0 flex flex-col h-screen fixed inset-0 z-50">
+        <div class="flex justify-between items-center p-4 bg-black text-white absolute top-0 left-0 right-0 z-20">
+            <h2 id="scanner-title" class="text-xl font-bold">バーコードをあわせてね</h2>
+            <button onclick="stopScanner()" class="btn-kids bg-btnCancel text-white px-4 py-2 text-sm">もどる</button>
+        </div>
+        
+        <div class="flex-grow flex items-center justify-center relative">
+            <div id="reader"></div>
+            
+            <div id="scanner-overlay" class="hidden w-full h-full">
+                <div class="scan-overlay">
+                    <div class="scan-line"></div>
+                </div>
+            </div>
+
+            <!-- シンプルな読み込み中画面（テストボタン等一切なし） -->
+            <div id="scanner-loading" class="absolute inset-0 flex flex-col items-center justify-center text-white bg-black/90 z-30 px-6 text-center">
+                <span id="scanner-status-icon" class="material-symbols-rounded animate-spin text-5xl mb-4 text-btnReg">progress_activity</span>
+                <p id="scanner-status-text" class="font-bold text-lg">カメラをじゅんび中...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- =============== 商品登録画面 =============== -->
+    <div id="page-register" class="page px-4 pt-6 bg-white">
+        <div class="flex items-center gap-3 mb-6">
+            <button onclick="cancelRegister()" class="bg-gray-100 p-3 rounded-full text-gray-600 active:scale-95 transition">
+                <span class="material-symbols-rounded">close</span>
+            </button>
+            <h1 class="text-2xl font-bold">商品のとうろく</h1>
+        </div>
+
+        <div class="card-kids bg-gray-50 p-4 mb-6 text-center">
+            <p class="text-sm text-gray-500 mb-2 font-bold" id="reg-barcode-display">バーコード: ----</p>
+            
+            <input type="hidden" id="reg-barcode">
+            
+            <div class="relative w-32 h-32 mx-auto mb-4 bg-gray-200 rounded-kids flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-400">
+                <img id="reg-image-preview" src="" class="w-full h-full object-cover hidden">
+                <span id="reg-image-icon" class="material-symbols-rounded text-5xl text-gray-400">add_a_photo</span>
+                <input type="file" id="reg-image-input" accept="image/*" capture="environment" class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleImageUpload(event)">
+            </div>
+            <p class="text-sm text-btnReg font-bold">しゃしんをとる</p>
+        </div>
+
+        <div class="space-y-4">
+            <div>
+                <label class="block text-gray-700 font-bold mb-2">なまえ</label>
+                <input type="text" id="reg-name" class="kids-input" placeholder="例: ぎゅうにゅう">
+            </div>
+            <div>
+                <label class="block text-gray-700 font-bold mb-2">ねだん (円)</label>
+                <input type="number" id="reg-price" class="kids-input text-right" placeholder="0" pattern="\d*">
+            </div>
+            <div>
+                <label class="block text-gray-700 font-bold mb-2">しゅるい</label>
+                <div class="grid grid-cols-2 gap-2" id="reg-category-btns">
+                    <button type="button" class="cat-btn border-2 border-gray-200 rounded-xl p-3 font-bold text-gray-500 active-cat" data-cat="たべもの" onclick="selectCategory(this)">🍎 たべもの</button>
+                    <button type="button" class="cat-btn border-2 border-gray-200 rounded-xl p-3 font-bold text-gray-500" data-cat="のみもの" onclick="selectCategory(this)">🧃 のみもの</button>
+                    <button type="button" class="cat-btn border-2 border-gray-200 rounded-xl p-3 font-bold text-gray-500" data-cat="おもちゃ" onclick="selectCategory(this)">🧸 おもちゃ</button>
+                    <button type="button" class="cat-btn border-2 border-gray-200 rounded-xl p-3 font-bold text-gray-500" data-cat="その他" onclick="selectCategory(this)">📦 その他</button>
+                </div>
+                <input type="hidden" id="reg-category" value="たべもの">
+            </div>
+        </div>
+
+        <button onclick="saveProduct()" class="btn-kids bg-btnRegister text-white w-full mt-8 py-4">
+            <span class="material-symbols-rounded">check_circle</span>
+            とうろくを おわる
+        </button>
+    </div>
+
+    <!-- =============== お会計画面 (レシート) =============== -->
+    <div id="page-receipt" class="page bg-gray-800 pt-10">
+        <h1 class="text-center text-3xl font-bold text-white mb-8">おかいけい完了！</h1>
+        
+        <div class="receipt-container">
+            <div class="receipt-top-edge"></div>
+            <div class="receipt-paper" id="receipt-paper">
+                <div class="receipt-content">
+                    <div class="text-center font-bold text-lg border-b-2 border-dashed border-gray-300 pb-4 mb-4">
+                        おみせやさん<br>
+                        <span class="text-sm font-normal text-gray-500" id="receipt-date"></span>
+                    </div>
+                    <div id="receipt-items" class="space-y-2 mb-4 text-sm font-bold">
+                        <!-- レシートアイテム -->
+                    </div>
+                    <div class="border-t-2 border-dashed border-gray-300 pt-4 mb-6">
+                        <div class="flex justify-between font-bold text-lg">
+                            <span>ごうけい</span>
+                            <span id="receipt-total-amount">0</span>
+                        </div>
+                    </div>
+                    <div class="text-center text-sm font-bold text-gray-600">
+                        ありがとうございました<br>またきてね！
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="px-6 mt-8">
+            <button onclick="finishCheckout()" class="btn-kids bg-btnTotal text-white w-full py-4">
+                ホームにもどる
+            </button>
+        </div>
+    </div>
+
+    <!-- =============== 履歴画面 =============== -->
+    <div id="page-history" class="page px-4 pt-6">
+        <h1 class="text-2xl font-bold flex items-center gap-2 mb-6">
+            <span class="material-symbols-rounded text-btnReg text-3xl">receipt_long</span>
+            おかいあげ きろく
+        </h1>
+        
+        <div id="history-list" class="space-y-4">
+            <!-- 履歴リスト -->
+        </div>
+    </div>
+
+    <!-- =============== 商品管理画面 =============== -->
+    <div id="page-manage" class="page px-4 pt-6">
+        <h1 class="text-2xl font-bold flex items-center gap-2 mb-6">
+            <span class="material-symbols-rounded text-btnTotal text-3xl">inventory_2</span>
+            商品かんり
+        </h1>
+
+        <div class="bg-white rounded-kids p-2 flex items-center shadow-sm mb-6 border-2 border-gray-100">
+            <span class="material-symbols-rounded text-gray-400 mx-2">search</span>
+            <input type="text" id="manage-search" class="w-full text-lg outline-none font-bold" placeholder="なまえでさがす..." oninput="renderManageProducts()">
+        </div>
+        
+        <div id="manage-list" class="space-y-3">
+            <!-- 管理リスト -->
+        </div>
+    </div>
+
+    <!-- =============== ナビゲーションバー =============== -->
+    <div class="bottom-nav" id="bottom-nav">
+        <div class="nav-item active" onclick="navigateTo('home')">
+            <span class="material-symbols-rounded">home</span>
+            <span>レジ</span>
+        </div>
+        <div class="nav-item" onclick="navigateTo('history')">
+            <span class="material-symbols-rounded">receipt_long</span>
+            <span>きろく</span>
+        </div>
+        <div class="nav-item" onclick="navigateTo('manage')">
+            <span class="material-symbols-rounded">inventory_2</span>
+            <span>かんり</span>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- JavaScript Application Logic               -->
+    <!-- ========================================== -->
+    <script>
+        // --- 1. 状態管理 (State & LocalStorage) ---
+        const defaultState = {
+            products: {
+                "4900000000001": { name: "おいしい おみず", price: 100, category: "のみもの", image: "" },
+                "4900000000002": { name: "クッキー", price: 150, category: "たべもの", image: "" }
+            },
+            cart: [],
+            history: [],
+            settings: { sound: true }
+        };
+
+        let state = { ...defaultState };
+        let html5QrcodeScanner = null;
+        let currentScanMode = 'cart';
+
+        function loadState() {
+            try {
+                const saved = localStorage.getItem('kidsRegisterStateV1');
+                if (saved) {
+                    state = JSON.parse(saved);
+                    if (!state.products) state.products = {};
+                    if (!state.cart) state.cart = [];
+                    if (!state.history) state.history = [];
+                    if (!state.settings) state.settings = defaultState.settings;
+                }
+            } catch (e) {
+                console.error("LocalStorage load failed", e);
+            }
+            updateSoundIcon();
+        }
+
+        function saveState() {
+            try {
+                localStorage.setItem('kidsRegisterStateV1', JSON.stringify(state));
+            } catch (e) {
+                showToast("データがいっぱいです。写真を減らしてね。");
+            }
+        }
+
+        // --- 2. サウンド & 音声合成 ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playSound(type) {
+            if (!state.settings.sound) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            const now = audioCtx.currentTime;
+            
+            if (type === 'pi') { 
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1500, now);
+                osc.frequency.exponentialRampToValueAtTime(3000, now + 0.1);
+                gainNode.gain.setValueAtTime(0, now);
+                gainNode.gain.linearRampToValueAtTime(0.5, now + 0.05);
+                gainNode.gain.linearRampToValueAtTime(0, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } else if (type === 'pon') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(500, now);
+                osc.frequency.exponentialRampToValueAtTime(200, now + 0.1);
+                gainNode.gain.setValueAtTime(0, now);
+                gainNode.gain.linearRampToValueAtTime(0.3, now + 0.02);
+                gainNode.gain.linearRampToValueAtTime(0, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            } else if (type === 'kira') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.setValueAtTime(1200, now + 0.1);
+                osc.frequency.setValueAtTime(1600, now + 0.2);
+                gainNode.gain.setValueAtTime(0, now);
+                gainNode.gain.linearRampToValueAtTime(0.3, now + 0.05);
+                gainNode.gain.linearRampToValueAtTime(0.3, now + 0.25);
+                gainNode.gain.linearRampToValueAtTime(0, now + 0.4);
+                osc.start(now);
+                osc.stop(now + 0.4);
+            } else if (type === 'error') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(200, now);
+                osc.frequency.setValueAtTime(150, now + 0.2);
+                gainNode.gain.setValueAtTime(0, now);
+                gainNode.gain.linearRampToValueAtTime(0.3, now + 0.05);
+                gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            }
+        }
+
+        function speak(text) {
+            if (!state.settings.sound) return;
+            if ('speechSynthesis' in window) {
+                speechSynthesis.cancel();
+                const ut = new SpeechSynthesisUtterance(text);
+                ut.lang = 'ja-JP';
+                ut.rate = 1.1;
+                ut.pitch = 1.2;
+                speechSynthesis.speak(ut);
+            }
+        }
+
+        function toggleSound() {
+            state.settings.sound = !state.settings.sound;
+            saveState();
+            updateSoundIcon();
+            if(state.settings.sound) playSound('kira');
+        }
+
+        function updateSoundIcon() {
+            const icon = document.getElementById('icon-sound');
+            if (icon) {
+                icon.textContent = state.settings.sound ? 'volume_up' : 'volume_off';
+                icon.className = `material-symbols-rounded ${state.settings.sound ? 'text-btnReg' : 'text-gray-400'}`;
+            }
+        }
+
+        // --- 3. 画面遷移 ---
+        function navigateTo(pageId) {
+            playSound('pon');
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(`page-${pageId}`).classList.add('active');
+            
+            const nav = document.getElementById('bottom-nav');
+            if(pageId === 'scanner' || pageId === 'receipt' || pageId === 'register') {
+                nav.style.display = 'none';
+            } else {
+                nav.style.display = 'flex';
+                document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+                const activeNav = Array.from(document.querySelectorAll('.nav-item')).find(el => el.getAttribute('onclick').includes(pageId));
+                if(activeNav) activeNav.classList.add('active');
+            }
+
+            if (pageId === 'home') renderCart();
+            if (pageId === 'history') renderHistory();
+            if (pageId === 'manage') renderManageProducts();
+        }
+
+        // --- 4. スキャナー機能 ---
+        function setScannerStatus(isError, message) {
+            const icon = document.getElementById('scanner-status-icon');
+            const text = document.getElementById('scanner-status-text');
+            if (isError) {
+                icon.textContent = 'error';
+                icon.classList.remove('animate-spin');
+                icon.classList.add('text-btnCancel');
+            } else {
+                icon.textContent = 'progress_activity';
+                icon.classList.add('animate-spin');
+                icon.classList.remove('text-btnCancel');
+                icon.classList.add('text-btnReg');
+            }
+            text.innerHTML = message;
+        }
+
+        async function startScanner(mode = 'cart') {
+            currentScanMode = mode;
+            playSound('pon');
+            navigateTo('scanner');
+            
+            const titleEl = document.getElementById('scanner-title');
+            if(mode === 'cart') {
+                titleEl.textContent = 'レジ：バーコードをよんでね';
+                titleEl.className = "text-xl font-bold text-btnReg";
+            } else {
+                titleEl.textContent = 'とうろく：バーコードをよんでね';
+                titleEl.className = "text-xl font-bold text-btnRegister";
+            }
+            
+            // 🐛 ここで存在しない要素をいじろうとしてエラーになっていました。修正済み。
+            const loadingDiv = document.getElementById('scanner-loading');
+            const overlayDiv = document.getElementById('scanner-overlay');
+            
+            loadingDiv.style.display = 'flex';
+            overlayDiv.style.display = 'none';
+            setScannerStatus(false, "カメラをじゅんび中...");
+
+            // カメラAPIの存在確認
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                setScannerStatus(true, "カメラが使えません");
+                setTimeout(stopScanner, 2000);
+                return;
+            }
+
+            if (!html5QrcodeScanner) {
+                html5QrcodeScanner = new Html5Qrcode("reader");
+            }
+
+            try {
+                const devices = await Html5Qrcode.getCameras();
+                if (devices && devices.length > 0) {
+                    const config = { fps: 10, qrbox: { width: 250, height: 100 }, aspectRatio: 1.0 };
+                    
+                    await html5QrcodeScanner.start(
+                        { facingMode: "environment" }, 
+                        config, 
+                        onScanSuccess, 
+                        undefined
+                    );
+                    
+                    loadingDiv.style.display = 'none';
+                    overlayDiv.style.display = 'block';
+                } else {
+                    setScannerStatus(true, "カメラがみつかりません");
+                    setTimeout(stopScanner, 2000);
+                }
+            } catch (err) {
+                console.warn("Camera Init Error:", err);
+                setScannerStatus(true, "カメラが使えません");
+                setTimeout(stopScanner, 2000);
+            }
+        }
+
+        function stopScanner() {
+            if (html5QrcodeScanner && html5QrcodeScanner.isScanning) {
+                html5QrcodeScanner.stop().then(() => {
+                    html5QrcodeScanner.clear();
+                }).catch(err => console.error(err));
+            }
+            navigateTo('home');
+        }
+
+        async function onScanSuccess(decodedText) {
+            if (html5QrcodeScanner && html5QrcodeScanner.isScanning) {
+                html5QrcodeScanner.pause(true);
+            }
+            
+            playSound('pi');
+            playFlash();
+
+            const barcode = decodedText;
+            const loadingDiv = document.getElementById('scanner-loading');
+            const overlayDiv = document.getElementById('scanner-overlay');
+            
+            if (currentScanMode === 'cart') {
+                if (state.products[barcode]) {
+                    const product = state.products[barcode];
+                    addToCart(barcode);
+                    speak(`${product.name}、${product.price}えん`);
+                    setTimeout(() => { stopScanner(); }, 800);
+                } else {
+                    playSound('error');
+                    speak('とうろくされていません');
+                    setScannerStatus(true, "とうろくされてない商品だよ");
+                    loadingDiv.style.display = 'flex';
+                    overlayDiv.style.display = 'none';
+                    setTimeout(() => { stopScanner(); }, 2000);
+                }
+            } else {
+                loadingDiv.style.display = 'flex';
+                overlayDiv.style.display = 'none';
+
+                if (state.products[barcode]) {
+                    setScannerStatus(false, "この商品は とうろく済み だよ<br>じょうほうを なおすね");
+                    setTimeout(() => {
+                        openRegisterPage(barcode, state.products[barcode].name, state.products[barcode]);
+                    }, 1000);
+                } else {
+                    setScannerStatus(false, "商品をさがしています...");
+                    try {
+                        const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+                        const data = await response.json();
+                        
+                        if (data.status === 1 && data.product.product_name) {
+                            openRegisterPage(barcode, data.product.product_name);
+                        } else {
+                            openRegisterPage(barcode, "");
+                        }
+                    } catch (e) {
+                        openRegisterPage(barcode, "");
+                    }
+                }
+            }
+        }
+
+        function playFlash() {
+            const flash = document.getElementById('flashOverlay');
+            flash.style.opacity = '1';
+            anime({
+                targets: flash,
+                opacity: 0,
+                duration: 500,
+                easing: 'easeOutExpo'
+            });
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // --- 5. カート機能 ---
+        function addToCart(barcode) {
+            const existing = state.cart.find(item => item.barcode === barcode);
+            if (existing) {
+                existing.qty += 1;
+            } else {
+                state.cart.unshift({ barcode, qty: 1 });
+            }
+            saveState();
+            renderCart();
+            animateCartAdd();
+        }
+
+        function changeQty(barcode, delta) {
+            playSound('pon');
+            const item = state.cart.find(item => item.barcode === barcode);
+            if (item) {
+                item.qty += delta;
+                if (item.qty <= 0) {
+                    state.cart = state.cart.filter(i => i.barcode !== barcode);
+                }
+                saveState();
+                renderCart();
+            }
+        }
+
+        function removeCartItem(barcode) {
+            playSound('pon');
+            state.cart = state.cart.filter(item => item.barcode !== barcode);
+            saveState();
+            renderCart();
+        }
+
+        function renderCart() {
+            const list = document.getElementById('cart-list');
+            const totalEl = document.getElementById('cart-total');
+            const btnCheckout = document.getElementById('btn-checkout');
+            
+            list.innerHTML = '';
+            let total = 0;
+
+            if (state.cart.length === 0) {
+                list.innerHTML = '<div class="text-center text-gray-400 py-8 font-bold">まだ何もないよ！<br>「レジをうつ」をおしてね</div>';
+                totalEl.textContent = '0円';
+                btnCheckout.disabled = true;
+                return;
+            }
+
+            state.cart.forEach((item, index) => {
+                const product = state.products[item.barcode];
+                if(!product) return;
+                
+                const subtotal = product.price * item.qty;
+                total += subtotal;
+
+                const imageSrc = product.image || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24"><path fill="%23ccc" d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>';
+
+                const card = document.createElement('div');
+                card.className = 'card-kids flex items-center gap-3 cart-item';
+                if(index === 0) card.classList.add('new-item');
+                
+                card.innerHTML = `
+                    <img src="${imageSrc}" class="w-16 h-16 rounded-xl object-cover bg-gray-100">
+                    <div class="flex-grow">
+                        <div class="font-bold text-lg leading-tight mb-1">${product.name}</div>
+                        <div class="text-gray-500 font-bold">${product.price}円</div>
+                    </div>
+                    <div class="flex flex-col items-end gap-2">
+                        <div class="flex items-center bg-bgBase rounded-full p-1 border-2 border-orange-100">
+                            <button onclick="changeQty('${item.barcode}', -1)" class="w-8 h-8 flex items-center justify-center bg-white rounded-full font-bold text-xl text-btnCancel shadow-sm active:scale-90">-</button>
+                            <span class="w-8 text-center font-bold text-lg">${item.qty}</span>
+                            <button onclick="changeQty('${item.barcode}', 1)" class="w-8 h-8 flex items-center justify-center bg-white rounded-full font-bold text-xl text-btnReg shadow-sm active:scale-90">+</button>
+                        </div>
+                        <div class="font-bold text-btnTotal text-lg">${subtotal}円</div>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+
+            totalEl.textContent = `${total}円`;
+            btnCheckout.disabled = false;
+        }
+
+        function animateCartAdd() {
+            const newItems = document.querySelectorAll('.cart-item.new-item');
+            if (newItems.length > 0) {
+                anime({
+                    targets: newItems,
+                    scale: [0.8, 1.05, 1],
+                    opacity: [0, 1],
+                    duration: 400,
+                    easing: 'easeOutElastic(1, .8)'
+                });
+                newItems.forEach(el => el.classList.remove('new-item'));
+            }
+        }
+
+        // --- 6. 商品登録 ---
+        function openRegisterPage(barcode, defaultName, existingData = null) {
+            if (html5QrcodeScanner && html5QrcodeScanner.isScanning) {
+                stopScanner();
+            }
+            
+            if (existingData) {
+                playSound('pon');
+                speak('商品をなおします');
+            } else {
+                playSound('error');
+                speak('商品がみつかりません。とうろくしてね。');
+            }
+            
+            document.getElementById('reg-barcode').value = barcode;
+            document.getElementById('reg-barcode-display').textContent = `バーコード: ${barcode}`;
+            
+            document.getElementById('reg-name').value = existingData ? existingData.name : (defaultName || '');
+            document.getElementById('reg-price').value = existingData ? existingData.price : '';
+            
+            const preview = document.getElementById('reg-image-preview');
+            const icon = document.getElementById('reg-image-icon');
+            if (existingData && existingData.image) {
+                preview.src = existingData.image;
+                preview.classList.remove('hidden');
+                icon.classList.add('hidden');
+            } else {
+                preview.src = '';
+                preview.classList.add('hidden');
+                icon.classList.remove('hidden');
+            }
+            
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                btn.classList.remove('border-btnReg', 'text-btnReg', 'bg-green-50');
+                btn.classList.add('border-gray-200', 'text-gray-500');
+            });
+            
+            let targetCatBtn = document.querySelector('.cat-btn');
+            if (existingData && existingData.category) {
+                const found = Array.from(document.querySelectorAll('.cat-btn')).find(b => b.dataset.cat === existingData.category);
+                if (found) targetCatBtn = found;
+            }
+            
+            targetCatBtn.classList.add('border-btnReg', 'text-btnReg', 'bg-green-50');
+            document.getElementById('reg-category').value = targetCatBtn.dataset.cat;
+
+            navigateTo('register');
+        }
+
+        function selectCategory(btn) {
+            playSound('pon');
+            document.querySelectorAll('.cat-btn').forEach(b => {
+                b.classList.remove('border-btnReg', 'text-btnReg', 'bg-green-50');
+                b.classList.add('border-gray-200', 'text-gray-500');
+            });
+            btn.classList.add('border-btnReg', 'text-btnReg', 'bg-green-50');
+            document.getElementById('reg-category').value = btn.dataset.cat;
+        }
+
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_SIZE = 300;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_SIZE) {
+                            height *= MAX_SIZE / width;
+                            width = MAX_SIZE;
+                        }
+                    } else {
+                        if (height > MAX_SIZE) {
+                            width *= MAX_SIZE / height;
+                            height = MAX_SIZE;
+                        }
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                    const preview = document.getElementById('reg-image-preview');
+                    preview.src = dataUrl;
+                    preview.classList.remove('hidden');
+                    document.getElementById('reg-image-icon').classList.add('hidden');
+                }
+                img.src = e.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+
+        function saveProduct() {
+            const barcode = document.getElementById('reg-barcode').value;
+            const name = document.getElementById('reg-name').value.trim();
+            const price = parseInt(document.getElementById('reg-price').value, 10);
+            const category = document.getElementById('reg-category').value;
+            const image = document.getElementById('reg-image-preview').src;
+
+            if (!name || isNaN(price)) {
+                showToast("なまえ と ねだん を入れてね！");
+                playSound('error');
+                return;
+            }
+
+            state.products[barcode] = { name, price, category, image: image.startsWith('data:') ? image : "" };
+            saveState();
+            
+            playSound('kira');
+            showToast("とうろく しました！");
+            navigateTo('home');
+        }
+
+        function cancelRegister() {
+            navigateTo('home');
+        }
+
+        // --- 7. お会計 ---
+        function checkout() {
+            if (state.cart.length === 0) return;
+            
+            playSound('pon');
+            navigateTo('receipt');
+            
+            const paper = document.getElementById('receipt-paper');
+            const itemsContainer = document.getElementById('receipt-items');
+            
+            const now = new Date();
+            document.getElementById('receipt-date').textContent = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+            let total = 0;
+            itemsContainer.innerHTML = '';
+            
+            const historyItems = [];
+
+            state.cart.forEach(item => {
+                const product = state.products[item.barcode];
+                const subtotal = product.price * item.qty;
+                total += subtotal;
+                
+                historyItems.push({ name: product.name, price: product.price, qty: item.qty });
+
+                const row = document.createElement('div');
+                row.className = 'flex justify-between';
+                const nameDisplay = item.qty > 1 ? `${product.name} x${item.qty}` : product.name;
+                row.innerHTML = `<span>${nameDisplay}</span><span>${subtotal}</span>`;
+                itemsContainer.appendChild(row);
+            });
+
+            document.getElementById('receipt-total-amount').textContent = `${total}円`;
+
+            state.history.unshift({
+                date: now.toISOString(),
+                total: total,
+                items: historyItems
+            });
+            if (state.history.length > 20) state.history.pop();
+            
+            state.cart = [];
+            saveState();
+
+            paper.style.height = '0px';
+            setTimeout(() => {
+                const fullHeight = paper.scrollHeight + 40;
+                anime({
+                    targets: paper,
+                    height: [0, fullHeight],
+                    duration: 1500,
+                    easing: 'easeOutCubic',
+                    complete: () => {
+                        playSound('kira');
+                        setTimeout(() => {
+                            speak(`ごうけい、${total}えんになります。ありがとうございました。`);
+                        }, 500);
+                    }
+                });
+            }, 300);
+        }
+
+        function finishCheckout() {
+            navigateTo('home');
+        }
+
+        // --- 8. 履歴 ---
+        function renderHistory() {
+            const list = document.getElementById('history-list');
+            list.innerHTML = '';
+
+            if (state.history.length === 0) {
+                list.innerHTML = '<div class="text-center text-gray-400 py-8 font-bold">まだ きろく がないよ</div>';
+                return;
+            }
+
+            state.history.forEach(record => {
+                const date = new Date(record.date);
+                const dateStr = `${date.getMonth()+1}/${date.getDate()} ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
+                
+                const card = document.createElement('div');
+                card.className = 'card-kids';
+                
+                let itemsHtml = record.items.map(i => `${i.name}${i.qty>1 ? ' x'+i.qty : ''}`).join(', ');
+                if(itemsHtml.length > 20) itemsHtml = itemsHtml.substring(0, 20) + '...';
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-gray-500 font-bold">${dateStr}</span>
+                        <span class="text-xl font-bold text-btnTotal">${record.total}円</span>
+                    </div>
+                    <div class="text-sm text-gray-500 bg-gray-50 p-2 rounded-lg">
+                        ${itemsHtml}
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        // --- 9. 商品管理 ---
+        function renderManageProducts() {
+            const list = document.getElementById('manage-list');
+            const searchQ = document.getElementById('manage-search').value.toLowerCase();
+            list.innerHTML = '';
+
+            const barcodes = Object.keys(state.products);
+            if (barcodes.length === 0) {
+                list.innerHTML = '<div class="text-center text-gray-400 py-8 font-bold">とうろくされた商品はないよ</div>';
+                return;
+            }
+
+            barcodes.forEach(barcode => {
+                const product = state.products[barcode];
+                if (searchQ && !product.name.toLowerCase().includes(searchQ)) return;
+
+                const imageSrc = product.image || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24"><path fill="%23ccc" d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>';
+
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-xl p-3 shadow-sm flex items-center gap-3 border border-gray-100';
+                card.innerHTML = `
+                    <img src="${imageSrc}" class="w-12 h-12 rounded-lg object-cover bg-gray-100">
+                    <div class="flex-grow">
+                        <div class="font-bold text-gray-800">${product.name}</div>
+                        <div class="text-sm text-gray-500">${product.price}円 / ${product.category}</div>
+                    </div>
+                    <button onclick="deleteProduct('${barcode}')" class="w-10 h-10 flex items-center justify-center bg-red-50 text-btnCancel rounded-full active:scale-90">
+                        <span class="material-symbols-rounded">delete</span>
+                    </button>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function deleteProduct(barcode) {
+            playSound('pon');
+            if(confirm("この商品をけしてもいいですか？")) {
+                delete state.products[barcode];
+                state.cart = state.cart.filter(item => item.barcode !== barcode);
+                saveState();
+                renderManageProducts();
+            }
+        }
+
+        // --- 初期化 ---
+        window.onload = () => {
+            document.body.addEventListener('touchstart', function() {
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+            }, { once: true });
+            
+            loadState();
+            navigateTo('home');
+        };
+
+    </script>
+</body>
+</html>
+
+
